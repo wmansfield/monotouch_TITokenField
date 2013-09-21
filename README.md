@@ -1,4 +1,6 @@
-mono_TITokenField
-=================
+# TITokenField - MonoTouch Port
+### A Port of TITokenField for Xamarin/Monotouch
 
-Port of TITokenField For Monotouch
+## Usage
+
+See the original here: https://github.com/thermogl/TITokenField
