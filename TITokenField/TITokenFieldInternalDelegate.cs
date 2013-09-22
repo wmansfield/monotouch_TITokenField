@@ -43,7 +43,7 @@ namespace TokenField
 
         public override bool ShouldBeginEditing(UITextField textField)
         {
-            if (this.Delegate != null)
+            if (this.Delegate != null )
             {
                 return this.Delegate.ShouldBeginEditing(textField);
             }
@@ -52,7 +52,7 @@ namespace TokenField
 
         public override void EditingStarted(UITextField textField)
         {
-            if (this.Delegate != null)
+            if (this.Delegate != null )
             {
                 this.Delegate.EditingStarted(textField);
             }
@@ -80,7 +80,7 @@ namespace TokenField
         public override bool ShouldReturn(UITextField textField)
         {
             this.TokenField.TokenizeText();
-            if (this.Delegate != null)
+            if (this.Delegate != null )
             {
                 return this.Delegate.ShouldReturn(textField);
             }
@@ -98,6 +98,10 @@ namespace TokenField
 
         public override bool ShouldChangeCharacters(UITextField textField, MonoTouch.Foundation.NSRange range, string replacementString)
         {
+            if (!string.IsNullOrEmpty(replacementString))
+            {
+                replacementString = replacementString.Replace(TITokenField.kTextEmpty, string.Empty).Replace(TITokenField.kTextHidden, string.Empty);
+            }
             if ((this.TokenField.Tokens.Count > 0) && string.IsNullOrEmpty(replacementString) && (this.TokenField.Text == TITokenField.kTextEmpty))
             {
                 this.TokenField.SelectToken(this.TokenField.Tokens[this.TokenField.Tokens.Count - 1]);

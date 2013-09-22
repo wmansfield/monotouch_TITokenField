@@ -61,6 +61,8 @@ namespace TokenField
         {
             this.Tokens = new List<TIToken>();
             this.Editable = true;
+            _maxTokenWidth = 200;
+            _tokenTintColor = TIToken.BlueTintColor;
             this.RemovesTokensOnEndEditing = true;
             this.TokenizingCharacters = new char[]{','};
 
@@ -105,6 +107,8 @@ namespace TokenField
         protected string _placeHolderText;
         protected PointF _tokenCaret;
         protected float _fontSize;
+        protected int _maxTokenWidth;
+        protected UIColor _tokenTintColor;
 
         protected virtual float LeftViewWidth 
         { 
@@ -145,6 +149,10 @@ namespace TokenField
         public new event EventHandler Ended;
         public event EventHandler FrameWillChange;
         public event EventHandler FrameDidChange;
+        /// <summary>
+        /// Extra event to help layouts that are at the footer, notifies when the field grows in height
+        /// </summary>
+        public event EventHandler BoundsDidChange;
         public event CancellableProtocolHandler<TITokenField, TIToken> WillAddToken;
         public event CancellableProtocolHandler<TITokenField, TIToken> WillRemoveToken;
         public event ProtocolHandler<TITokenField, TIToken> DidAddToken;
@@ -181,6 +189,43 @@ namespace TokenField
             get
             {
                 return _resultsModeEnabled;
+            }
+        }
+        public virtual int MaxTokenWidth
+        {
+            get
+            {
+                return _maxTokenWidth;
+            }
+            set
+            {
+                Wrap.Method("TokenField.MaxTokenWidth", delegate()
+                {
+                    if (_maxTokenWidth != value)
+                    {
+                        _maxTokenWidth = value;
+                        LayoutTokensInternal();
+                    }
+                });
+            }
+        }
+
+        public UIColor TokenTintColor
+        {
+            get
+            {
+                return _tokenTintColor;
+            }
+            set
+            {
+                Wrap.Method("TokenField.TokenTintColor", delegate()
+                {
+                    if (_tokenTintColor != value)
+                    {
+                        _tokenTintColor = value;
+                        LayoutTokensInternal();
+                    }
+                });
             }
         }
 
@@ -435,6 +480,8 @@ namespace TokenField
 
                     if (shouldAdd)
                     {
+                        token.TintColor = this.TokenTintColor;
+                        token.MaxWidth = this.MaxTokenWidth;
                         this.BecomeFirstResponder();
 
                         token.TouchDown -= Token_TouchDown; //safety
@@ -550,7 +597,8 @@ namespace TokenField
 
                 if ((this.Text != kTextEmpty) && (this.Text != kTextHidden) && !this.ForcePickSearchResult)
                 {
-                    string[] tokens = this.Text.Split(this.TokenizingCharacters);
+                    string trimmed = this.Text.Replace(kTextEmpty, string.Empty).Replace(kTextHidden, string.Empty);
+                    string[] tokens = trimmed.Split(this.TokenizingCharacters);
                     foreach (var item in tokens)
                     {
                         this.AddToken(item.Trim());
@@ -674,6 +722,7 @@ namespace TokenField
                             Wrap.Method("LayoutTokensAnimated.Completion", delegate()
                             {
                                 this.SendActionForControlEvents((UIControlEvent)ControlEvents.FrameDidChange);
+                                this.BoundsDidChange.Raise(this, EventArgs.Empty);
                             });
                         }
                     );
@@ -700,8 +749,15 @@ namespace TokenField
                 TIToken[] tokens = this.Tokens.ToArray();
                 foreach (TIToken token in tokens)
                 {
+                    token.TintColor = this.TokenTintColor;
                     token.Font = this.Font;
-                    token.MaxWidth = (int)(this.Bounds.Size.Width - rightMargin - (this.NumberOfLines > 1 ? hPadding : leftMargin));
+                    int maxWidth = (int)(this.Bounds.Size.Width - rightMargin - (this.NumberOfLines > 1 ? hPadding : leftMargin));
+
+                    if(maxWidth > this.MaxTokenWidth)
+                    {
+                        maxWidth = this.MaxTokenWidth;
+                    }
+                    token.MaxWidth = maxWidth;
 
                     if (token.Superview != null)
                     {
@@ -723,6 +779,7 @@ namespace TokenField
                         }
                     }
                 }
+
                 return _tokenCaret.Y + lineHeight;
             });
         }
@@ -808,7 +865,9 @@ namespace TokenField
                         NSString nsString = new NSString(untokenized);
 
                         SizeF untokSize = nsString.StringSize(UIFont.SystemFontOfSize(this.FontSize));
-                        float availableWidth = this.Bounds.Size.Width - this.LeftView.Bounds.Size.Width - this.RightView.Bounds.Size.Width;
+                        float rightOffset = 0;
+
+                        float availableWidth = this.Bounds.Size.Width - this.LeftViewWidth - this.RightViewWidth;
 
                         if (this.Tokens.Count > 1 && untokSize.Width > availableWidth)
                         {

@@ -37,6 +37,7 @@ namespace TokenField
         {
         }
 
+
         public virtual bool WillAddToken(TITokenField tokenField, TIToken token)
         {
             return true;
@@ -55,7 +56,7 @@ namespace TokenField
         public virtual void DidFinishSearch(TITokenField tokenField, IEnumerable matches)
         {
         }
-
+        /*
         public virtual float GetHeightForRow(TITokenField tokenField, UITableView tableView, NSIndexPath indexPath)
         {
             return tableView.RowHeight;
@@ -64,6 +65,7 @@ namespace TokenField
         {
             return new UITableViewCell(UITableViewCellStyle.Default, "tokenFieldDefaultCell");
         }
+        */
         public virtual string SearchResultSubtitleForRepresentedObject(TITokenField tokenField, object representedObject)
         {
             if (representedObject != null)

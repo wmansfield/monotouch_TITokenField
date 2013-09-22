@@ -30,6 +30,7 @@ using MonoTouch.UIKit;
 using System.Collections.Generic;
 using System.Drawing;
 using MonoTouch.Foundation;
+using System.Threading.Tasks;
 
 namespace TokenField
 {
@@ -66,9 +67,10 @@ namespace TokenField
             this.ForcePickSearchResult = false;
             this.ResultsArray = new List<object>();
 
+           
             this.TokenField.Started += tokenField_DidBeginEditing;
             this.TokenField.Ended += tokenField_DidEndEditing;
-            this.TokenField.ValueChanged += tokenField_TextDidChange;
+            this.TokenField.EditingChanged += tokenField_TextDidChange;
 
             this.TokenField.FrameWillChange += tokenField_FrameWillChange;
             this.TokenField.FrameDidChange += tokenField_FrameDidChange;
@@ -131,6 +133,7 @@ namespace TokenField
         private TITokenFieldDelegateShim _tokenDelegateShim;
         private TableViewDelegateShim _tableViewDelegateShim;
         private TableViewDataSourceShim _tableViewDataSource;
+        private static object _searchResultRoot = new object();
 
         #endregion
 
@@ -156,7 +159,7 @@ namespace TokenField
         public virtual UIView Separator { get; protected set; }
         public virtual object[] SourceArray { get; set; }
         public virtual List<object> ResultsArray { get; protected set; }
-        public Func<string, List<object>> SearchMethod { get; set; }
+        public Func<string, Task<List<object>>> SearchMethodAsync { get; set; }
 
         public override RectangleF Frame
         {
@@ -292,75 +295,109 @@ namespace TokenField
             });
         }
 
-        protected virtual void ResultsForSearchString(string searchString)
+        protected async Task ResultsForSearchString(string searchString)
         {
-            Wrap.Method("ResultsForSearchString", delegate()
+            Wrap.MethodAsync("ResultsForSearchString", async delegate()
             {
-                this.ResultsArray.Clear();
-                this.ResultsTable.ReloadData();
+                this.InvokeOnMainThread(delegate() 
+                {
+                    this.ResultsArray.Clear();
+                    this.ResultsTable.ReloadData();
+                });
 
+                if(string.IsNullOrWhiteSpace(searchString))
+                {
+                    searchString = string.Empty;
+                }
                 searchString = searchString.Trim().ToLower();
 
-                if (SearchMethod != null)
+                if (SearchMethodAsync != null)
                 {
-                    List<object> results = SearchMethod(searchString);
-                    foreach (object item in results) 
+                    List<object> results = SearchMethodAsync(searchString).Result;
+                    this.InvokeOnMainThread(delegate() 
                     {
-                        this.ResultsArray.Add(item);
-                    }
-                }
-                else
-                {
-                    if(!string.IsNullOrEmpty(searchString) || ForcePickSearchResult)
-                    {
-                        foreach (var sourceObject in this.SourceArray)
+                        lock(_searchResultRoot)
                         {
-                            string title = this._tokenDelegateShim.SearchResultStringForRepresentedObject(this.TokenField, sourceObject);
-                            string subTitle = this._tokenDelegateShim.SearchResultSubtitleForRepresentedObject(this.TokenField, sourceObject);
-                            if (!SearchSubtitles || string.IsNullOrEmpty(subTitle))
+                            // ensure same search is still pending
+                            string currentText = this.TokenField.Text;
+                            if(!string.IsNullOrEmpty(currentText))
                             {
-                                subTitle = string.Empty;
-                            }
-                            title = title.ToLower();
-                            subTitle = subTitle.ToLower();
-                            if ((this.ForcePickSearchResult && string.IsNullOrEmpty(searchString)) 
-                                || title.Contains(searchString) 
-                                || subTitle.Contains(searchString))
+                                currentText = currentText.Replace(TITokenField.kTextEmpty,"").Replace(TITokenField.kTextHidden,"");
+                            };
+                            if(currentText == searchString)
                             {
-                                bool shouldAdd = !this.ResultsArray.Contains(sourceObject);
-
-                                if (shouldAdd && !ShowAlreadyTokenized)
+                                this.ResultsArray.Clear();
+                                foreach (object item in results) 
                                 {
-                                    foreach (var token in this.TokenField.Tokens) 
-                                    {
-                                        if (token.RepresentedObject == sourceObject)
-                                        {
-                                            shouldAdd = false;
-                                            break;
-                                        }
-                                    }
+                                    this.ResultsArray.Add(item);
                                 }
-                                if(shouldAdd)
+
+                                if (this.ResultsArray.Count > 0) 
                                 {
-                                    this.ResultsArray.Add(sourceObject);
+                                    this.ResultsTable.ReloadData();
                                 }
                             }
                         }
-                    }
-                    if (this.ResultsArray.Count > 0) 
-                    {
-                        this.ResultsArray.Sort(delegate(object l, object r)
-                        {
-                            string left = this._tokenDelegateShim.SearchResultStringForRepresentedObject(this.TokenField, l);
-                            string right = this._tokenDelegateShim.SearchResultStringForRepresentedObject(this.TokenField, r);
-                            return left.CompareTo(right);
-                        });
-                    }
+                    });
                 }
-
-                if (this.ResultsArray.Count > 0) 
+                else
                 {
-                    this.ResultsTable.ReloadData();
+                    this.InvokeOnMainThread(delegate() 
+                    {
+                        Wrap.Method("ResultsForSearchString", delegate()
+                        {
+                            if(!string.IsNullOrEmpty(searchString) || ForcePickSearchResult)
+                            {
+                                foreach (var sourceObject in this.SourceArray)
+                                {
+                                    string title = this._tokenDelegateShim.SearchResultStringForRepresentedObject(this.TokenField, sourceObject);
+                                    string subTitle = this._tokenDelegateShim.SearchResultSubtitleForRepresentedObject(this.TokenField, sourceObject);
+                                    if (!SearchSubtitles || string.IsNullOrEmpty(subTitle))
+                                    {
+                                        subTitle = string.Empty;
+                                    }
+
+                                    if ((this.ForcePickSearchResult && string.IsNullOrEmpty(searchString)) 
+                                        || title.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) > -1
+                                        || subTitle.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) > -1)
+                                    {
+                                        bool shouldAdd = !this.ResultsArray.Contains(sourceObject);
+
+                                        if (shouldAdd && !ShowAlreadyTokenized)
+                                        {
+                                            foreach (var token in this.TokenField.Tokens) 
+                                            {
+                                                if (token.RepresentedObject == sourceObject)
+                                                {
+                                                    shouldAdd = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if(shouldAdd)
+                                        {
+                                            this.ResultsArray.Add(sourceObject);
+                                        }
+                                    }
+                                }
+                            }
+                            if (this.ResultsArray.Count > 0) 
+                            {
+                                this.ResultsArray.Sort(delegate(object l, object r)
+                                {
+                                    string left = this._tokenDelegateShim.SearchResultStringForRepresentedObject(this.TokenField, l);
+                                    string right = this._tokenDelegateShim.SearchResultStringForRepresentedObject(this.TokenField, r);
+                                    return left.CompareTo(right);
+                                });
+                            }
+
+                            if (this.ResultsArray.Count > 0) 
+                            {
+                                this.ResultsTable.ReloadData();
+                            }
+                        });
+                            
+                    });
                 }
             });
         }
@@ -388,16 +425,32 @@ namespace TokenField
         {
             Wrap.Method("tokenField_TextDidChange", delegate()
             {
-                this.ResultsForSearchString(this.TokenField.Text);
-
-                if (this.ForcePickSearchResult)
+                string text = this.TokenField.Text;
+                if(!string.IsNullOrEmpty(text))
                 {
-                    this.SetSearchResultsVisible(true);
-                }
-                else
+                    text = text.Replace(TITokenField.kTextEmpty,"").Replace(TITokenField.kTextHidden,"");
+                };
+                Task.Run(delegate() 
                 {
-                    this.SetSearchResultsVisible(this.ResultsArray.Count > 0);
-                }
+                    this.ResultsForSearchString(text)
+                        .ContinueWith(delegate(Task arg) 
+                        {
+                            this.BeginInvokeOnMainThread(delegate()
+                            {
+                                Wrap.Method("Search_Callback", delegate()
+                                {
+                                    if (this.ForcePickSearchResult)
+                                    {
+                                        this.SetSearchResultsVisible(true);
+                                    }
+                                    else
+                                    {
+                                        this.SetSearchResultsVisible(this.ResultsArray.Count > 0);
+                                    }
+                                });
+                            });
+                        });
+                });
             });
         }
 
@@ -461,27 +514,27 @@ namespace TokenField
             }
             public override string DisplayStringForRepresentedObject(TITokenField tokenField, object representedObject)
             {
-                if (this.Owner.TokenField.Delegate != null)
+                if (tokenField.Delegate != null && (tokenField.Delegate != this))
                 {
-                    return this.Owner.TokenField.Delegate.DisplayStringForRepresentedObject(tokenField, representedObject);
+                    return tokenField.Delegate.DisplayStringForRepresentedObject(tokenField, representedObject);
                 }
 
                 return representedObject.ToString();
             }
             public override string SearchResultStringForRepresentedObject(TITokenField tokenField, object representedObject)
             {
-                if (this.Owner.TokenField.Delegate != null)
+                if (tokenField.Delegate != null && (tokenField.Delegate != this))
                 {
-                    return this.Owner.TokenField.Delegate.SearchResultStringForRepresentedObject(tokenField, representedObject);
+                    return tokenField.Delegate.SearchResultStringForRepresentedObject(tokenField, representedObject);
                 }
 
                 return this.DisplayStringForRepresentedObject(tokenField, representedObject);
             }
             public override string SearchResultSubtitleForRepresentedObject(TITokenField tokenField, object representedObject)
             {
-                if (this.Owner.TokenField.Delegate != null)
+                if (tokenField.Delegate != null && (tokenField.Delegate != this))
                 {
-                    return this.Owner.TokenField.Delegate.SearchResultSubtitleForRepresentedObject(tokenField, representedObject);
+                    return tokenField.Delegate.SearchResultSubtitleForRepresentedObject(tokenField, representedObject);
                 }
 
                 return null;
@@ -497,25 +550,23 @@ namespace TokenField
 
             public override float GetHeightForRow(UITableView tableView, NSIndexPath indexPath)
             {
-                if (this.Owner.TokenField.Delegate != null)
-                {
-                    return this.Owner.TokenField.Delegate.GetHeightForRow(this.Owner.TokenField, tableView, indexPath);
-                }
-
                 return 44;
             }
             public override void RowSelected(UITableView tableView, NSIndexPath indexPath)
             {
-                object representedObject = this.Owner.ResultsArray[indexPath.Row];
-                TIToken token = new TIToken()
+                Wrap.Method("RowSelected", delegate()
                 {
-                    Title = this.Owner.TokenField.Delegate.DisplayStringForRepresentedObject(this.Owner.TokenField, representedObject),
-                    RepresentedObject = representedObject
-                };
-                this.Owner.TokenField.AddToken(token);
+                    object representedObject = this.Owner.ResultsArray[indexPath.Row];
+                    TIToken token = new TIToken()
+                    {
+                        Title = this.Owner.TokenField.Delegate.DisplayStringForRepresentedObject(this.Owner.TokenField, representedObject),
+                        RepresentedObject = representedObject
+                    };
+                    this.Owner.TokenField.AddToken(token);
 
-                tableView.DeselectRow(indexPath, true);
-                this.Owner.SetSearchResultsVisible(false);
+                    tableView.DeselectRow(indexPath, true);
+                    this.Owner.SetSearchResultsVisible(false);
+                });
             }
 
         }
@@ -530,35 +581,42 @@ namespace TokenField
 
             public override int RowsInSection(UITableView tableView, int section)
             {
-                if (this.Owner.TokenField.Delegate != null)
+                return Wrap.Function("RowsInSection", delegate()
                 {
-                    this.Owner.TokenField.Delegate.DidFinishSearch(this.Owner.TokenField, this.Owner.ResultsArray);
-                }
-                this.Owner.TokenField.RaiseDidFinishSearch(this.Owner.TokenField, this.Owner.ResultsArray);
+                    if (this.Owner.TokenField.Delegate != null)
+                    {
+                        this.Owner.TokenField.Delegate.DidFinishSearch(this.Owner.TokenField, this.Owner.ResultsArray);
+                    }
+                    this.Owner.TokenField.RaiseDidFinishSearch(this.Owner.TokenField, this.Owner.ResultsArray);
 
-                return this.Owner.ResultsArray.Count;
+                    return this.Owner.ResultsArray.Count;
+                });
+                    
             }
             public override UITableViewCell GetCell(UITableView tableView, NSIndexPath indexPath)
             {
-                object representedObject = this.Owner.ResultsArray[indexPath.Row];
-
-                if (this.Owner.TokenField.Delegate != null)
+                return Wrap.Function("GetCell", delegate()
                 {
-                    return this.Owner.TokenField.Delegate.CellForRepresentedObject(this.Owner.TokenField, tableView, representedObject);
-                }
+                    object representedObject = this.Owner.ResultsArray[indexPath.Row];
 
-                string cellIdentifier = "ResultsCell";
-                UITableViewCell cell = tableView.DequeueReusableCell(cellIdentifier);
-                string subtitle = this.Owner._tokenDelegateShim.SearchResultSubtitleForRepresentedObject(this.Owner.TokenField, representedObject);
+                    string cellIdentifier = "ResultsCell";
+                    UITableViewCell cell = tableView.DequeueReusableCell(cellIdentifier);
+                    string subtitle = this.Owner._tokenDelegateShim.SearchResultSubtitleForRepresentedObject(this.Owner.TokenField, representedObject);
 
-                if (cell == null)
-                {
-                    cell = new UITableViewCell((!string.IsNullOrEmpty(subtitle) ? UITableViewCellStyle.Subtitle : UITableViewCellStyle.Default),  cellIdentifier);
-                }
-                cell.TextLabel.Text = this.Owner._tokenDelegateShim.SearchResultStringForRepresentedObject(this.Owner.TokenField, representedObject);
-                cell.DetailTextLabel.Text = subtitle;
-
-                return cell;
+                    if (cell == null)
+                    {
+                        cell = new UITableViewCell((!string.IsNullOrEmpty(subtitle) ? UITableViewCellStyle.Subtitle : UITableViewCellStyle.Default), cellIdentifier);
+                    }
+                    if (cell.TextLabel != null)
+                    {
+                        cell.TextLabel.Text = this.Owner._tokenDelegateShim.SearchResultStringForRepresentedObject(this.Owner.TokenField, representedObject);
+                    }
+                    if (cell.DetailTextLabel != null)
+                    {
+                        cell.DetailTextLabel.Text = subtitle;
+                    }
+                    return cell;
+                });
             }
 
         }

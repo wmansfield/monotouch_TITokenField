@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace TokenField
 {
@@ -26,6 +27,36 @@ namespace TokenField
             #endif
         }
         public static void Method(string methodName, Action action)
+        {
+            try
+            {
+                #if DEBUG
+                _counter++;
+                Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
+                #endif
+                action();
+            }
+            catch (Exception ex)
+            {
+                //TODO: Any custom logging when errors occur
+                Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
+
+                #if DEBUG
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+                #endif
+            }
+            finally
+            {
+                #if DEBUG
+                Console.WriteLine("{0}  </{1}>", new string(' ', _counter), methodName);
+                _counter--;
+                #endif
+            }
+        }
+        public static void MethodAsync(string methodName, Func<Task> action)
         {
             try
             {
