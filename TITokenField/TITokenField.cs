@@ -518,6 +518,7 @@ namespace TokenField
         {
             Wrap.Method("RemoveToken", delegate()
             {
+                if(token == null) { return; }
                 lock(_tokenSyncRoot)
                 {
                     if (token == this.SelectedToken)
@@ -865,7 +866,6 @@ namespace TokenField
                         NSString nsString = new NSString(untokenized);
 
                         SizeF untokSize = nsString.StringSize(UIFont.SystemFontOfSize(this.FontSize));
-                        float rightOffset = 0;
 
                         float availableWidth = this.Bounds.Size.Width - this.LeftViewWidth - this.RightViewWidth;
 

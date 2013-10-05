@@ -38,7 +38,6 @@ namespace TokenField
             }
             catch (Exception ex)
             {
-                //TODO: Any custom logging when errors occur
                 Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
 
                 #if DEBUG
@@ -56,35 +55,37 @@ namespace TokenField
                 #endif
             }
         }
-        public static void MethodAsync(string methodName, Func<Task> action)
+        public static Task MethodAsync(string methodName, Func<Task> action)
         {
-            try
+            return Task.Run(delegate()
             {
-                #if DEBUG
-                _counter++;
-                Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
-                #endif
-                action();
-            }
-            catch (Exception ex)
-            {
-                //TODO: Any custom logging when errors occur
-                Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
-
-                #if DEBUG
-                if (Debugger.IsAttached)
+                try
                 {
-                    Debugger.Break();
+                    #if DEBUG
+                    _counter++;
+                    Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
+                    #endif
+                    action();
                 }
-                #endif
-            }
-            finally
-            {
-                #if DEBUG
-                Console.WriteLine("{0}  </{1}>", new string(' ', _counter), methodName);
-                _counter--;
-                #endif
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
+
+                    #if DEBUG
+                    if (Debugger.IsAttached)
+                    {
+                        Debugger.Break();
+                    }
+                    #endif
+                }
+                finally
+                {
+                    #if DEBUG
+                    Console.WriteLine("{0}  </{1}>", new string(' ', _counter), methodName);
+                    _counter--;
+                    #endif
+                }
+            });
         }
         public static T Function<T>(string methodName, Func<T> action)
         {
@@ -95,15 +96,16 @@ namespace TokenField
                 Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
                 #endif
                 T result = action();
+                #if DEBUG
                 if(_logResults)
                 {
                     Log(result);
                 }
+                #endif
                 return result;
             }
             catch (Exception ex)
             {
-                //TODO: Any custom logging when errors occur
                 Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
                 #if DEBUG
                 if (Debugger.IsAttached)
