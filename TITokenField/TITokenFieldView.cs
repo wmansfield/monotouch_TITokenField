@@ -295,9 +295,9 @@ namespace TokenField
             });
         }
 
-        protected async Task ResultsForSearchString(string searchString)
+        protected Task ResultsForSearchString(string searchString)
         {
-            Wrap.MethodAsync("ResultsForSearchString", async delegate()
+            return Wrap.MethodAsync("ResultsForSearchString", async delegate()
             {
                 this.InvokeOnMainThread(delegate() 
                 {
@@ -313,7 +313,7 @@ namespace TokenField
 
                 if (SearchMethodAsync != null)
                 {
-                    List<object> results = SearchMethodAsync(searchString).Result;
+                    List<object> results = await SearchMethodAsync(searchString);
                     this.InvokeOnMainThread(delegate() 
                     {
                         lock(_searchResultRoot)
@@ -403,7 +403,6 @@ namespace TokenField
         }
 
         #endregion
-
 
         #region Event Handlers
 
