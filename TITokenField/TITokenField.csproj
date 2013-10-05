@@ -11,6 +11,7 @@
     <RootNamespace>TITokenField</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>TITokenField</AssemblyName>
+    <ReleaseVersion>1.0.19</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

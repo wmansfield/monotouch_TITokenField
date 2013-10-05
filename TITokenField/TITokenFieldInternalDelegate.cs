@@ -80,9 +80,13 @@ namespace TokenField
         public override bool ShouldReturn(UITextField textField)
         {
             this.TokenField.TokenizeText();
-            if (this.Delegate != null )
+            if (this.Delegate != null)
             {
                 return this.Delegate.ShouldReturn(textField);
+            }
+            if (this.TokenField.CloseOnReturn)
+            {
+                this.TokenField.ResignFirstResponder();
             }
             return true;
         }

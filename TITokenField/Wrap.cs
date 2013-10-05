@@ -95,10 +95,12 @@ namespace TokenField
                 Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
                 #endif
                 T result = action();
+                #if DEBUG
                 if(_logResults)
                 {
                     Log(result);
                 }
+                #endif
                 return result;
             }
             catch (Exception ex)

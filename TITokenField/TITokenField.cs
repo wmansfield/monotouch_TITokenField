@@ -178,6 +178,8 @@ namespace TokenField
         #region Public Properties
 
         public virtual TIToken SelectedToken { get; protected set; }
+
+        public bool CloseOnReturn { get; set; }
         public virtual char[] TokenizingCharacters { get; set; }
         public virtual List<TIToken> Tokens { get; set; }
         public virtual bool Editable { get; set; }
@@ -229,6 +231,38 @@ namespace TokenField
             }
         }
 
+        public override UIView LeftView
+        {
+            get
+            {
+                return base.LeftView;
+            }
+            set
+            {
+                //TODO:Xamarin bug that doesnt allow nulls
+                if (value == null)
+                {
+                    value = new UIView();
+                }
+                base.LeftView = value;
+            }
+        }
+        public override UIView RightView
+        {
+            get
+            {
+                return base.RightView;
+            }
+            set
+            {
+                //TODO:Xamarin bug that doesnt allow nulls
+                if (value == null)
+                {
+                    value = new UIView();
+                }
+                base.RightView = value;
+            }
+        }
         public virtual string PromptText
         {
             get
@@ -252,7 +286,14 @@ namespace TokenField
                         }
 
                         label.Text = value;
-                        label.Font = UIFont.SystemFontOfSize(this.Font.PointSize + 1);
+                        if(this.Font != null)
+                        {
+                            label.Font = UIFont.SystemFontOfSize(this.Font.PointSize + 1);
+                        }
+                        else
+                        {
+                            label.Font =  UIFont.SystemFontOfSize(UIFont.SystemFontOfSize(this.FontSize).PointSize + 1);
+                        }
                         label.SizeToFit();
                     }
                     else
@@ -343,15 +384,23 @@ namespace TokenField
         {
             get
             {
-                return base.Font;
+                UIFont result = base.Font;
+                if (result == null)
+                {
+                    return UIFont.SystemFontOfSize(this.FontSize);
+                }
+                return result;
             }
             set
             {
-                base.Font = value;
-                UILabel label = this.LeftView as UILabel;
-                if (label != null)
+                if (value != null)
                 {
-                    this.PromptText = label.Text; // forces font update
+                    base.Font = value;
+                    UILabel label = this.LeftView as UILabel;
+                    if (label != null)
+                    {
+                        this.PromptText = label.Text; // forces font update
+                    }
                 }
             }
         }

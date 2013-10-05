@@ -37,7 +37,6 @@ namespace TokenField
         {
         }
 
-
         public virtual bool WillAddToken(TITokenField tokenField, TIToken token)
         {
             return true;
