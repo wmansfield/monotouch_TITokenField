@@ -55,38 +55,36 @@ namespace TokenField
                 #endif
             }
         }
-        public static Task MethodAsync(string methodName, Func<Task> action)
+        public static async Task MethodAsync(string methodName, Func<Task> action)
         {
-            return Task.Run(delegate()
+            try
             {
-                try
-                {
-                    #if DEBUG
-                    _counter++;
-                    Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
-                    #endif
-                    action();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
+                #if DEBUG
+                _counter++;
+                Console.WriteLine("{0}  <{1}>", new string(' ', _counter), methodName);
+                #endif
+                await action();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("{0} <- {1}", ex.Message, ex.StackTrace);
 
-                    #if DEBUG
-                    if (Debugger.IsAttached)
-                    {
-                        Debugger.Break();
-                    }
-                    #endif
-                }
-                finally
+                #if DEBUG
+                if (Debugger.IsAttached)
                 {
-                    #if DEBUG
-                    Console.WriteLine("{0}  </{1}>", new string(' ', _counter), methodName);
-                    _counter--;
-                    #endif
+                    Debugger.Break();
                 }
-            });
+                #endif
+            }
+            finally
+            {
+                #if DEBUG
+                Console.WriteLine("{0}  </{1}>", new string(' ', _counter), methodName);
+                _counter--;
+                #endif
+            }
         }
+
         public static T Function<T>(string methodName, Func<T> action)
         {
             try

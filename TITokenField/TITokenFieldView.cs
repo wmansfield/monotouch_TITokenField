@@ -72,7 +72,6 @@ namespace TokenField
             this.TokenField.Ended += tokenField_DidEndEditing;
             this.TokenField.EditingChanged += tokenField_TextDidChange;
 
-            this.TokenField.FrameWillChange += tokenField_FrameWillChange;
             this.TokenField.FrameDidChange += tokenField_FrameDidChange;
 
             this.TokenField.Delegate = _tokenDelegateShim;
@@ -295,9 +294,9 @@ namespace TokenField
             });
         }
 
-        protected Task ResultsForSearchString(string searchString)
+        protected async Task ResultsForSearchString(string searchString)
         {
-            return Wrap.MethodAsync("ResultsForSearchString", async delegate()
+            await Wrap.MethodAsync("ResultsForSearchString", async delegate()
             {
                 this.InvokeOnMainThread(delegate() 
                 {
@@ -324,7 +323,7 @@ namespace TokenField
                             {
                                 currentText = currentText.Replace(TITokenField.kTextEmpty,"").Replace(TITokenField.kTextHidden,"");
                             };
-                            if(currentText == searchString)
+                            if(currentText.Equals(searchString, StringComparison.OrdinalIgnoreCase))
                             {
                                 this.ResultsArray.Clear();
                                 foreach (object item in results) 
@@ -453,9 +452,9 @@ namespace TokenField
             });
         }
 
-        protected virtual void tokenField_FrameWillChange(object sender, EventArgs args) 
+        protected virtual void tokenField_FrameDidChange(object sender, EventArgs args) 
         {
-            Wrap.Method("tokenField_FrameWillChange", delegate()
+            Wrap.Method("tokenField_FrameDidChange", delegate()
             {
                 float tokenFieldBottom = this.TokenField.Frame.Bottom;
                 this.Separator.Frame = new RectangleF(new PointF(this.Separator.Frame.X, tokenFieldBottom), this.Separator.Bounds.Size);
@@ -464,10 +463,6 @@ namespace TokenField
             });
         }
 
-        protected virtual void tokenField_FrameDidChange(object sender, EventArgs args) 
-        {
-            this.UpdateContentSize();
-        }
 
         #endregion
        

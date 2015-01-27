@@ -531,7 +531,7 @@ namespace TokenField
                     {
                         token.TintColor = this.TokenTintColor;
                         token.MaxWidth = this.MaxTokenWidth;
-                        this.BecomeFirstResponder();
+                        //this.BecomeFirstResponder();
 
                         token.TouchDown -= Token_TouchDown; //safety
                         token.TouchUpInside -= Token_TouchUpInside; //safety
@@ -883,6 +883,14 @@ namespace TokenField
                 foreach (var item in tokens)
                 {
                     this.AddToken(item);
+                }
+
+                if(this.Tokens.Count > 0)
+                {
+                    if (_placeHolderLabel != null)
+                    {
+                        _placeHolderLabel.Hidden = true;
+                    }
                 }
             });
         }
