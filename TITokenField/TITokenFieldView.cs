@@ -42,6 +42,11 @@ namespace TokenField
         {
             this.Setup();
         }
+        public TITokenFieldView(UITableView customTableView)
+        {
+            this.CustomTableView = customTableView;
+            this.Setup();
+        }
         public TITokenFieldView (IntPtr handle) : base (handle)
         {
             this.Setup();
@@ -82,38 +87,56 @@ namespace TokenField
 
             this.Separator = new UIView(new RectangleF(0, tokenFieldBottom, this.Bounds.Size.Width, 1));
             this.Separator.BackgroundColor = UIColor.FromWhiteAlpha(0.7f, 1f);
-            this.AddSubview(this.Separator);
 
             // This view is created for convenience, because it resizes and moves with the rest of the subviews.
             this.ContentView = new UIView(new RectangleF(0, tokenFieldBottom + 1, this.Bounds.Size.Width, this.Bounds.Size.Height - tokenFieldBottom - 1));
             this.ContentView.BackgroundColor = UIColor.Clear;
             this.AddSubview(this.ContentView);
 
-            if (UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad)
+            UITableView customTable = null;
+            if (this.TokenField.Delegate != null)
             {
-                UITableViewController tableViewController = new UITableViewController(UITableViewStyle.Plain);
-                tableViewController.TableView.Delegate = _tableViewDelegateShim;
-                tableViewController.TableView.DataSource = _tableViewDataSource;
-                tableViewController.PreferredContentSize = new SizeF(400, 400);
-
-                this.ResultsTable = tableViewController.TableView;
-
-                _popoverController = new UIPopoverController(tableViewController);
+                customTable = this.TokenField.Delegate.GetCustomTableView(this.TokenField);
+            }
+            if (customTable != null)
+            {
+                this.ResultsTable = customTable;
+                this.ResultsTable.Delegate = _tableViewDelegateShim;
+                this.ResultsTable.DataSource = _tableViewDataSource;
+                this.IsCustomResultsTable = true;
             }
             else
             {
-                this.ResultsTable =  new UITableView(new RectangleF(0, tokenFieldBottom + 1, this.Bounds.Size.Width, 10));
-                this.ResultsTable.SeparatorColor = UIColor.FromWhiteAlpha(0.85f, 1f);
-                this.ResultsTable.BackgroundColor = UIColor.FromRGBA(0.92f, 0.92f, 0.92f ,1f);
-                this.ResultsTable.Delegate = _tableViewDelegateShim;
-                this.ResultsTable.DataSource = _tableViewDataSource;
-                this.ResultsTable.Hidden = true;
-                this.AddSubview(this.ResultsTable);
+                this.AddSubview(this.Separator);
 
-                _popoverController = null;
+                if (UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad)
+                {
+                    UITableViewController tableViewController = new UITableViewController(UITableViewStyle.Plain);
+                    tableViewController.TableView.Delegate = _tableViewDelegateShim;
+                    tableViewController.TableView.DataSource = _tableViewDataSource;
+                    tableViewController.PreferredContentSize = new SizeF(400, 400);
+
+                    this.ResultsTable = tableViewController.TableView;
+
+                    _popoverController = new UIPopoverController(tableViewController);
+                }
+                else
+                {
+
+                    this.ResultsTable =  new UITableView(new RectangleF(0, tokenFieldBottom + 1, this.Bounds.Size.Width, 10));
+                    this.ResultsTable.SeparatorColor = UIColor.FromWhiteAlpha(0.85f, 1f);
+                    this.ResultsTable.BackgroundColor = UIColor.FromRGBA(0.92f, 0.92f, 0.92f ,1f);
+                    this.ResultsTable.Delegate = _tableViewDelegateShim;
+                    this.ResultsTable.DataSource = _tableViewDataSource;
+                    this.ResultsTable.Hidden = true;
+                    this.AddSubview(this.ResultsTable);
+
+                    _popoverController = null;
+                }
+
+                this.BringSubviewToFront(this.Separator);
             }
 
-            this.BringSubviewToFront(this.Separator);
             this.BringSubviewToFront(this.TokenField);
 
             this.UpdateContentSize();
@@ -154,11 +177,16 @@ namespace TokenField
         }
         public virtual TITokenField TokenField { get; protected set; }
         public virtual UITableView ResultsTable { get; protected set; }
+        public virtual bool IsCustomResultsTable { get; protected set; }
         public virtual UIView ContentView { get; protected set; }
         public virtual UIView Separator { get; protected set; }
         public virtual object[] SourceArray { get; set; }
         public virtual List<object> ResultsArray { get; protected set; }
         public Func<string, Task<List<object>>> SearchMethodAsync { get; set; }
+        public Action<TITokenFieldView> OnSearchComplete { get; set; }
+        public virtual UITableView CustomTableView { get; set; }
+        public Func<UITableView, NSIndexPath, object, UITableViewCell> CustomGetCellMethod { get; set; }
+        public Func<UITableView, NSIndexPath, object, float> CustomGetCellHeightMethod { get; set; }
 
         public override RectangleF Frame
         {
@@ -177,7 +205,10 @@ namespace TokenField
                     } // init work around
                     float width = value.Size.Width;
                     this.Separator.Frame = new RectangleF(this.Separator.Frame.Location, new SizeF(width, this.Separator.Bounds.Size.Height));
-                    this.ResultsTable.Frame = new RectangleF(this.ResultsTable.Frame.Location, new SizeF(width, this.ResultsTable.Bounds.Size.Height));
+                    if(!this.IsCustomResultsTable)
+                    {
+                        this.ResultsTable.Frame = new RectangleF(this.ResultsTable.Frame.Location, new SizeF(width, this.ResultsTable.Bounds.Size.Height));
+                    }
                     this.ContentView.Frame = new RectangleF(this.ContentView.Frame.Location, new SizeF(width, value.Size.Height - this.TokenField.Frame.Bottom));
                     this.TokenField.Frame = new RectangleF(this.TokenField.Frame.Location, new SizeF(width, this.TokenField.Bounds.Size.Height));
 
@@ -213,9 +244,10 @@ namespace TokenField
         {
             get
             {
-                return true;
+                return this.TokenField.CanBecomeFirstResponder;
             }
         }
+       
         #endregion
 
         #region Public Methods
@@ -226,11 +258,14 @@ namespace TokenField
             {
                 base.LayoutSubviews();
 
-                float relativeFieldHeight = this.TokenField.Frame.Bottom - this.ContentOffset.Y;
-                float newHeight = this.Bounds.Size.Height - relativeFieldHeight;
-                if (newHeight > -1)
+                if(!this.IsCustomResultsTable)
                 {
-                    this.ResultsTable.Frame = new RectangleF(this.ResultsTable.Frame.Location, new SizeF(this.ResultsTable.Bounds.Size.Width, newHeight));
+                    float relativeFieldHeight = this.TokenField.Frame.Bottom - this.ContentOffset.Y;
+                    float newHeight = this.Bounds.Size.Height - relativeFieldHeight;
+                    if (newHeight > -1)
+                    {
+                        this.ResultsTable.Frame = new RectangleF(this.ResultsTable.Frame.Location, new SizeF(this.ResultsTable.Bounds.Size.Width, newHeight));
+                    }
                 }
             });
         }
@@ -249,6 +284,59 @@ namespace TokenField
         public override string ToString()
         {
             return string.Format("[TITokenFieldView: TokenCount={0}]", this.GetTokenTitles().Count);
+        }
+        public string GetCurrentSearchText()
+        {
+            return Wrap.Function("GetCurrentSearchText", delegate()
+            {
+                string text = this.TokenField.Text;
+                if(!string.IsNullOrEmpty(text))
+                {
+                    text = text.Replace(TITokenField.kTextEmpty,"").Replace(TITokenField.kTextHidden,"");
+                };
+                return text;
+            });
+        }
+
+        public virtual void DoPerformSearch()
+        {
+            Wrap.Method("DoPerformSearch", delegate()
+            {
+                string text = this.TokenField.Text;
+                if(!string.IsNullOrEmpty(text))
+                {
+                    text = text.Replace(TITokenField.kTextEmpty,"").Replace(TITokenField.kTextHidden,"");
+                };
+                Task.Run(delegate() 
+                {
+                    this.ResultsForSearchString(text)
+                        .ContinueWith(delegate(Task arg) 
+                        {
+                            this.BeginInvokeOnMainThread(delegate()
+                            {
+                                Wrap.Method("Search_Callback", delegate()
+                                {
+                                    if (this.ForcePickSearchResult)
+                                    {
+                                        this.SetSearchResultsVisible(true);
+                                    }
+                                    else
+                                    {
+                                        this.SetSearchResultsVisible(this.ResultsArray.Count > 0);
+                                    }
+                                });
+                            });
+                        });
+                });
+            });
+        }
+        public virtual void DoClearResults()
+        {
+            Wrap.Method("DoClearResults", delegate()
+            {
+                this.ResultsArray.Clear();
+                this.ResultsTable.ReloadData();
+            });
         }
         #endregion
 
@@ -276,7 +364,10 @@ namespace TokenField
                 }
                 else
                 {
-                    this.ResultsTable.Hidden = !visible;
+                    if(!this.IsCustomResultsTable)
+                    {
+                        this.ResultsTable.Hidden = !visible;
+                    }
                     this.TokenField.SetResultsModeEnabled(visible);
                 }
             });
@@ -334,6 +425,10 @@ namespace TokenField
                                 if (this.ResultsArray.Count > 0) 
                                 {
                                     this.ResultsTable.ReloadData();
+                                }
+                                if(this.OnSearchComplete != null)
+                                {
+                                    this.OnSearchComplete(this);
                                 }
                             }
                         }
@@ -401,55 +496,73 @@ namespace TokenField
             });
         }
 
+
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (TokenField != null)
+                {
+                    TokenField.Dispose();
+                    TokenField = null;
+                }
+                CustomGetCellHeightMethod = null;
+                CustomGetCellMethod = null;
+                CustomTableView = null;
+                if (_popoverController != null)
+                {
+                    _popoverController.Dispose();
+                    _popoverController = null;
+                }
+                if (_tokenDelegateShim != null)
+                {
+                    _tokenDelegateShim.Dispose();
+                    _tokenDelegateShim = null;
+                }
+                if (_tableViewDelegateShim != null)
+                {
+                    _tableViewDelegateShim.Dispose();
+                    _tableViewDelegateShim = null;
+                }
+                if (_tableViewDataSource != null)
+                {
+                    _tableViewDataSource.Dispose();
+                    _tableViewDataSource = null;
+                }
+
+                if (Separator != null)
+                {
+                    Separator.Dispose();
+                    Separator = null;
+                }
+
+                if (ContentView != null)
+                {
+                    ContentView.Dispose();
+                    ContentView = null;
+                }
+            }
+            base.Dispose(disposing);
+        }
+
         #endregion
 
         #region Event Handlers
 
         protected virtual void tokenField_DidBeginEditing(object sender, EventArgs args) 
         {
-            Wrap.Method("tokenField_DidBeginEditing", delegate()
-            {
-                this.ResultsArray.Clear();
-                this.ResultsTable.ReloadData();
-            });
+            this.DoClearResults();
         }
 
         protected virtual void tokenField_DidEndEditing(object sender, EventArgs args) 
         {
-            this.tokenField_DidBeginEditing(sender, args);
+            this.DoClearResults();
         }
 
         protected virtual void tokenField_TextDidChange(object sender, EventArgs args) 
         {
-            Wrap.Method("tokenField_TextDidChange", delegate()
-            {
-                string text = this.TokenField.Text;
-                if(!string.IsNullOrEmpty(text))
-                {
-                    text = text.Replace(TITokenField.kTextEmpty,"").Replace(TITokenField.kTextHidden,"");
-                };
-                Task.Run(delegate() 
-                {
-                    this.ResultsForSearchString(text)
-                        .ContinueWith(delegate(Task arg) 
-                        {
-                            this.BeginInvokeOnMainThread(delegate()
-                            {
-                                Wrap.Method("Search_Callback", delegate()
-                                {
-                                    if (this.ForcePickSearchResult)
-                                    {
-                                        this.SetSearchResultsVisible(true);
-                                    }
-                                    else
-                                    {
-                                        this.SetSearchResultsVisible(this.ResultsArray.Count > 0);
-                                    }
-                                });
-                            });
-                        });
-                });
-            });
+            this.DoPerformSearch();
         }
 
         protected virtual void tokenField_FrameDidChange(object sender, EventArgs args) 
@@ -458,7 +571,10 @@ namespace TokenField
             {
                 float tokenFieldBottom = this.TokenField.Frame.Bottom;
                 this.Separator.Frame = new RectangleF(new PointF(this.Separator.Frame.X, tokenFieldBottom), this.Separator.Bounds.Size);
-                this.ResultsTable.Frame = new RectangleF(new PointF(this.ResultsTable.Frame.X, (tokenFieldBottom + 1)), this.ResultsTable.Bounds.Size);
+                if(!this.IsCustomResultsTable)
+                {
+                    this.ResultsTable.Frame = new RectangleF(new PointF(this.ResultsTable.Frame.X, (tokenFieldBottom + 1)), this.ResultsTable.Bounds.Size);
+                }
                 this.ContentView.Frame = new RectangleF(new PointF(this.ContentView.Frame.X, (tokenFieldBottom + 1)), this.ContentView.Bounds.Size);
             });
         }
@@ -533,6 +649,38 @@ namespace TokenField
 
                 return null;
             }
+            public override UITableView GetCustomTableView(TITokenField tokenField)
+            {
+                if (this.Owner != null && this.Owner.CustomTableView != null)
+                {
+                    return this.Owner.CustomTableView;
+                }
+                if (tokenField.Delegate != null && (tokenField.Delegate != this))
+                {
+                    return tokenField.Delegate.GetCustomTableView(tokenField);
+                }
+                return null;
+            }
+            public override bool DisableScrolling(TITokenField tokenField)
+            {
+                if (this.Owner != null && this.Owner.CustomTableView != null)
+                {
+                    return true;
+                }
+                if (tokenField.Delegate != null && (tokenField.Delegate != this))
+                {
+                    return tokenField.Delegate.DisableScrolling(tokenField);
+                }
+                return false;
+            }
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    this.Owner = null;
+                }
+                base.Dispose(disposing);
+            }
         }
         public class TableViewDelegateShim : UITableViewDelegate
         {
@@ -544,6 +692,12 @@ namespace TokenField
 
             public override float GetHeightForRow(UITableView tableView, NSIndexPath indexPath)
             {
+                object representedObject = this.Owner.ResultsArray[indexPath.Row];
+
+                if (this.Owner != null && this.Owner.CustomGetCellHeightMethod != null)
+                {
+                    return this.Owner.CustomGetCellHeightMethod(tableView, indexPath, representedObject);
+                }
                 return 44;
             }
             public override void RowSelected(UITableView tableView, NSIndexPath indexPath)
@@ -563,6 +717,14 @@ namespace TokenField
                 });
             }
 
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    this.Owner = null;
+                }
+                base.Dispose(disposing);
+            }
         }
 
         public class TableViewDataSourceShim : UITableViewDataSource
@@ -593,26 +755,41 @@ namespace TokenField
                 {
                     object representedObject = this.Owner.ResultsArray[indexPath.Row];
 
-                    string cellIdentifier = "ResultsCell";
-                    UITableViewCell cell = tableView.DequeueReusableCell(cellIdentifier);
-                    string subtitle = this.Owner._tokenDelegateShim.SearchResultSubtitleForRepresentedObject(this.Owner.TokenField, representedObject);
+                    UITableViewCell cell = null;
+                    if (this.Owner != null && this.Owner.CustomGetCellMethod != null)
+                    {
+                        cell = this.Owner.CustomGetCellMethod(tableView, indexPath, representedObject);
+                    }
+                    if(cell == null)
+                    {
+                        string cellIdentifier = "ResultsCell";
+                        cell = tableView.DequeueReusableCell(cellIdentifier);
+                        string subtitle = this.Owner._tokenDelegateShim.SearchResultSubtitleForRepresentedObject(this.Owner.TokenField, representedObject);
 
-                    if (cell == null)
-                    {
-                        cell = new UITableViewCell((!string.IsNullOrEmpty(subtitle) ? UITableViewCellStyle.Subtitle : UITableViewCellStyle.Default), cellIdentifier);
-                    }
-                    if (cell.TextLabel != null)
-                    {
-                        cell.TextLabel.Text = this.Owner._tokenDelegateShim.SearchResultStringForRepresentedObject(this.Owner.TokenField, representedObject);
-                    }
-                    if (cell.DetailTextLabel != null)
-                    {
-                        cell.DetailTextLabel.Text = subtitle;
+                        if (cell == null)
+                        {
+                            cell = new UITableViewCell((!string.IsNullOrEmpty(subtitle) ? UITableViewCellStyle.Subtitle : UITableViewCellStyle.Default), cellIdentifier);
+                        }
+                        if (cell.TextLabel != null)
+                        {
+                            cell.TextLabel.Text = this.Owner._tokenDelegateShim.SearchResultStringForRepresentedObject(this.Owner.TokenField, representedObject);
+                        }
+                        if (cell.DetailTextLabel != null)
+                        {
+                            cell.DetailTextLabel.Text = subtitle;
+                        }
                     }
                     return cell;
                 });
             }
-
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    this.Owner = null;
+                }
+                base.Dispose(disposing);
+            }
         }
 
 

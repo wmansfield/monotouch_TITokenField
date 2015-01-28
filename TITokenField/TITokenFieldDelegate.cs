@@ -89,6 +89,14 @@ namespace TokenField
             }
             return string.Empty;
         }
+        public virtual UITableView GetCustomTableView(TITokenField tokenField)
+        {
+            return null;
+        }
+        public virtual bool DisableScrolling(TITokenField tokenField)
+        {
+            return false;
+        }
 
     }
 }

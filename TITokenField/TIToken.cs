@@ -101,7 +101,6 @@ namespace TokenField
 
         #endregion
 
-
         #region Private Properties
 
         private string _title = string.Empty;

@@ -129,6 +129,14 @@ namespace TokenField
             }
             return true;
         }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.Owner = null;
+            }
+            base.Dispose(disposing);
+        }
     }
 }
 

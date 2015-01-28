@@ -453,15 +453,18 @@ namespace TokenField
 
                 if (_resultsModeEnabled != enabled)
                 {
-                    //Hide / show the shadow
-                    this.Layer.MasksToBounds = !enabled;
+                    if(!this.Delegate.DisableScrolling(this))
+                    {
+                        //Hide / show the shadow
+                        this.Layer.MasksToBounds = !enabled;
 
-                    UIScrollView scrollView = this.GetScrollView();
-                    scrollView.ScrollsToTop = !enabled;
-                    scrollView.ScrollEnabled = !enabled;
+                        UIScrollView scrollView = this.GetScrollView();
+                        scrollView.ScrollsToTop = !enabled;
+                        scrollView.ScrollEnabled = !enabled;
 
-                    float offset = ((this.NumberOfLines == 1 || !enabled) ? 0 : _tokenCaret.Y - (float)Math.Floor(this.Font.LineHeight * 4 / 7) + 1);
-                    scrollView.SetContentOffset(new PointF(0, this.Frame.Y + offset), animated);
+                        float offset = ((this.NumberOfLines == 1 || !enabled) ? 0 : _tokenCaret.Y - (float)Math.Floor(this.Font.LineHeight * 4 / 7) + 1);
+                        scrollView.SetContentOffset(new PointF(0, this.Frame.Y + offset), animated);
+                    }
                 }
 
                 _resultsModeEnabled = enabled;
@@ -783,6 +786,25 @@ namespace TokenField
 
         #region Protected Methods
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (_internalDelegate != null)
+                {
+                    _internalDelegate.Dispose();
+                    _internalDelegate = null;
+                }
+                if (_placeHolderLabel != null)
+                {
+                    _placeHolderLabel.Dispose();
+                    _placeHolderLabel = null;
+                }
+
+            }
+            base.Dispose(disposing);
+        }
+
         protected virtual float LayoutTokensInternal()
         {
             return Wrap.Function("LayoutTokensInternal", delegate()
@@ -937,7 +959,8 @@ namespace TokenField
                 this.SetResultsModeEnabled(false);
                 if (this.Tokens.Count < 1 && this.ForcePickSearchResult)
                 {
-                    this.BecomeFirstResponder();
+                    //bug: no longer needeD?
+                    //this.BecomeFirstResponder();
                 }
             });
         }
