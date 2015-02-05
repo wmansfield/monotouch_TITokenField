@@ -26,11 +26,11 @@
 //
 
 using System;
-using MonoTouch.UIKit;
+using UIKit;
 using System.Collections.Generic;
-using System.Drawing;
-using MonoTouch.Foundation;
+using Foundation;
 using System.Threading.Tasks;
+using CoreGraphics;
 
 namespace TokenField
 {
@@ -64,7 +64,7 @@ namespace TokenField
 
             this.TokenField = new TITokenField()
             {
-                Frame = new RectangleF(0, 0, this.Bounds.Size.Width, 42)
+                Frame = new CGRect(0, 0, this.Bounds.Size.Width, 42)
             };
 
             this.ShowAlreadyTokenized = false;
@@ -83,13 +83,13 @@ namespace TokenField
 
             this.AddSubview(this.TokenField);
 
-            float tokenFieldBottom = this.TokenField.Frame.Bottom;
+            nfloat tokenFieldBottom = this.TokenField.Frame.Bottom;
 
-            this.Separator = new UIView(new RectangleF(0, tokenFieldBottom, this.Bounds.Size.Width, 1));
+            this.Separator = new UIView(new CGRect(0, tokenFieldBottom, this.Bounds.Size.Width, 1));
             this.Separator.BackgroundColor = UIColor.FromWhiteAlpha(0.7f, 1f);
 
             // This view is created for convenience, because it resizes and moves with the rest of the subviews.
-            this.ContentView = new UIView(new RectangleF(0, tokenFieldBottom + 1, this.Bounds.Size.Width, this.Bounds.Size.Height - tokenFieldBottom - 1));
+            this.ContentView = new UIView(new CGRect(0, tokenFieldBottom + 1, this.Bounds.Size.Width, this.Bounds.Size.Height - tokenFieldBottom - 1));
             this.ContentView.BackgroundColor = UIColor.Clear;
             this.AddSubview(this.ContentView);
 
@@ -114,7 +114,7 @@ namespace TokenField
                     UITableViewController tableViewController = new UITableViewController(UITableViewStyle.Plain);
                     tableViewController.TableView.Delegate = _tableViewDelegateShim;
                     tableViewController.TableView.DataSource = _tableViewDataSource;
-                    tableViewController.PreferredContentSize = new SizeF(400, 400);
+                    tableViewController.PreferredContentSize = new CGSize(400, 400);
 
                     this.ResultsTable = tableViewController.TableView;
 
@@ -123,7 +123,7 @@ namespace TokenField
                 else
                 {
 
-                    this.ResultsTable =  new UITableView(new RectangleF(0, tokenFieldBottom + 1, this.Bounds.Size.Width, 10));
+                    this.ResultsTable =  new UITableView(new CGRect(0, tokenFieldBottom + 1, this.Bounds.Size.Width, 10));
                     this.ResultsTable.SeparatorColor = UIColor.FromWhiteAlpha(0.85f, 1f);
                     this.ResultsTable.BackgroundColor = UIColor.FromRGBA(0.92f, 0.92f, 0.92f ,1f);
                     this.ResultsTable.Delegate = _tableViewDelegateShim;
@@ -188,7 +188,7 @@ namespace TokenField
         public Func<UITableView, NSIndexPath, object, UITableViewCell> CustomGetCellMethod { get; set; }
         public Func<UITableView, NSIndexPath, object, float> CustomGetCellHeightMethod { get; set; }
 
-        public override RectangleF Frame
+        public override CGRect Frame
         {
             get
             {
@@ -203,14 +203,14 @@ namespace TokenField
                     {
                         return;
                     } // init work around
-                    float width = value.Size.Width;
-                    this.Separator.Frame = new RectangleF(this.Separator.Frame.Location, new SizeF(width, this.Separator.Bounds.Size.Height));
+                    nfloat width = value.Size.Width;
+                    this.Separator.Frame = new CGRect(this.Separator.Frame.Location, new CGSize(width, this.Separator.Bounds.Size.Height));
                     if(!this.IsCustomResultsTable)
                     {
-                        this.ResultsTable.Frame = new RectangleF(this.ResultsTable.Frame.Location, new SizeF(width, this.ResultsTable.Bounds.Size.Height));
+                        this.ResultsTable.Frame = new CGRect(this.ResultsTable.Frame.Location, new CGSize(width, this.ResultsTable.Bounds.Size.Height));
                     }
-                    this.ContentView.Frame = new RectangleF(this.ContentView.Frame.Location, new SizeF(width, value.Size.Height - this.TokenField.Frame.Bottom));
-                    this.TokenField.Frame = new RectangleF(this.TokenField.Frame.Location, new SizeF(width, this.TokenField.Bounds.Size.Height));
+                    this.ContentView.Frame = new CGRect(this.ContentView.Frame.Location, new CGSize(width, value.Size.Height - this.TokenField.Frame.Bottom));
+                    this.TokenField.Frame = new CGRect(this.TokenField.Frame.Location, new CGSize(width, this.TokenField.Bounds.Size.Height));
 
                     if ((_popoverController != null) && _popoverController.PopoverVisible)
                     {
@@ -223,7 +223,7 @@ namespace TokenField
                 });
             }
         }
-        public override PointF ContentOffset
+        public override CGPoint ContentOffset
         {
             get
             {
@@ -260,11 +260,11 @@ namespace TokenField
 
                 if(!this.IsCustomResultsTable)
                 {
-                    float relativeFieldHeight = this.TokenField.Frame.Bottom - this.ContentOffset.Y;
-                    float newHeight = this.Bounds.Size.Height - relativeFieldHeight;
+                    nfloat relativeFieldHeight = this.TokenField.Frame.Bottom - this.ContentOffset.Y;
+                    nfloat newHeight = this.Bounds.Size.Height - relativeFieldHeight;
                     if (newHeight > -1)
                     {
-                        this.ResultsTable.Frame = new RectangleF(this.ResultsTable.Frame.Location, new SizeF(this.ResultsTable.Bounds.Size.Width, newHeight));
+                        this.ResultsTable.Frame = new CGRect(this.ResultsTable.Frame.Location, new CGSize(this.ResultsTable.Bounds.Size.Width, newHeight));
                     }
                 }
             });
@@ -279,7 +279,7 @@ namespace TokenField
         }
         public virtual void UpdateContentSize()
         {
-            this.ContentSize = new SizeF(this.Bounds.Size.Width, this.ContentView.Frame.Bottom + 1);
+            this.ContentSize = new CGSize(this.Bounds.Size.Width, this.ContentView.Frame.Bottom + 1);
         }
         public override string ToString()
         {
@@ -569,13 +569,13 @@ namespace TokenField
         {
             Wrap.Method("tokenField_FrameDidChange", delegate()
             {
-                float tokenFieldBottom = this.TokenField.Frame.Bottom;
-                this.Separator.Frame = new RectangleF(new PointF(this.Separator.Frame.X, tokenFieldBottom), this.Separator.Bounds.Size);
+                nfloat tokenFieldBottom = this.TokenField.Frame.Bottom;
+                this.Separator.Frame = new CGRect(new CGPoint(this.Separator.Frame.X, tokenFieldBottom), this.Separator.Bounds.Size);
                 if(!this.IsCustomResultsTable)
                 {
-                    this.ResultsTable.Frame = new RectangleF(new PointF(this.ResultsTable.Frame.X, (tokenFieldBottom + 1)), this.ResultsTable.Bounds.Size);
+                    this.ResultsTable.Frame = new CGRect(new CGPoint(this.ResultsTable.Frame.X, (tokenFieldBottom + 1)), this.ResultsTable.Bounds.Size);
                 }
-                this.ContentView.Frame = new RectangleF(new PointF(this.ContentView.Frame.X, (tokenFieldBottom + 1)), this.ContentView.Bounds.Size);
+                this.ContentView.Frame = new CGRect(new CGPoint(this.ContentView.Frame.X, (tokenFieldBottom + 1)), this.ContentView.Bounds.Size);
             });
         }
 
@@ -690,7 +690,7 @@ namespace TokenField
             }
             public TITokenFieldView Owner { get; set; }
 
-            public override float GetHeightForRow(UITableView tableView, NSIndexPath indexPath)
+            public override nfloat GetHeightForRow(UITableView tableView, NSIndexPath indexPath)
             {
                 object representedObject = this.Owner.ResultsArray[indexPath.Row];
 
@@ -735,7 +735,7 @@ namespace TokenField
             }
             public TITokenFieldView Owner { get; set; }
 
-            public override int RowsInSection(UITableView tableView, int section)
+            public override nint RowsInSection(UITableView tableView, nint section)
             {
                 return Wrap.Function("RowsInSection", delegate()
                 {

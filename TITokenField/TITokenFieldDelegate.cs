@@ -25,8 +25,8 @@
 //  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 using System;
-using MonoTouch.UIKit;
-using MonoTouch.Foundation;
+using UIKit;
+using Foundation;
 using System.Collections;
 
 namespace TokenField

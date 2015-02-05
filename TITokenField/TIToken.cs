@@ -25,10 +25,9 @@
 //  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 using System;
-using MonoTouch.UIKit;
-using System.Drawing;
-using MonoTouch.CoreGraphics;
-using MonoTouch.Foundation;
+using UIKit;
+using CoreGraphics;
+using Foundation;
 
 namespace TokenField
 {
@@ -243,22 +242,22 @@ namespace TokenField
         {
             Wrap.Method("SizeToFit", delegate()
             {
-                float accessoryWidth = 0;
+                nfloat accessoryWidth = 0;
 
                 if (this.AccessoryType == AccessoryType.DisclosureIndicator)
                 {
-                    this.CreateDisclosureIndicatorPath(PointF.Empty, this.Font.PointSize, kDisclosureThickness, out accessoryWidth);
+                    this.CreateDisclosureIndicatorPath(CGPoint.Empty, this.Font.PointSize, kDisclosureThickness, out accessoryWidth);
                     accessoryWidth += (float)Math.Floor((double)hTextPadding / 2);
                 }
 
-                SizeF titleSize = new NSString(this.Title).StringSize(this.Font, (this.MaxWidth - hTextPadding - accessoryWidth), kLineBreakMode);
-                float height = (float)Math.Floor((double)(titleSize.Height + vTextPadding));
-                float width = Math.Max((float)Math.Floor((double)(titleSize.Width + hTextPadding + accessoryWidth)), height - 3);
-                this.Frame = new RectangleF(this.Frame.X, this.Frame.Y, width, height);
+                CGSize titleSize = new NSString(this.Title).StringSize(this.Font, (this.MaxWidth - hTextPadding - accessoryWidth), kLineBreakMode);
+                nfloat height = (nfloat)Math.Floor((double)(titleSize.Height + vTextPadding));
+                nfloat width = (nfloat)Math.Max((float)Math.Floor((double)(titleSize.Width + hTextPadding + accessoryWidth)), height - 3);
+                this.Frame = new CGRect(this.Frame.X, this.Frame.Y, width, height);
                 this.SetNeedsDisplay();
             });
         }
-        public override void Draw(RectangleF rect)
+        public override void Draw(CGRect rect)
         {
             Wrap.Method("Draw", delegate()
             {
@@ -271,25 +270,25 @@ namespace TokenField
 
                 bool drawHighlighted = (this.Selected || this.Highlighted);
                 CGColorSpace colorspace = CGColorSpace.CreateDeviceRGB();
-                PointF endPoint = new PointF(0, this.Bounds.Size.Height);
-                float red = 1;
-                float green = 1;
-                float blue = 1;
-                float alpha = 1;
+                CGPoint endPoint = new CGPoint(0, this.Bounds.Size.Height);
+                nfloat red = 1;
+                nfloat green = 1;
+                nfloat blue = 1;
+                nfloat alpha = 1;
                 this.GetTintColorRed(ref red, ref green, ref blue, ref alpha);
 
                 if (drawHighlighted)
                 {
-                    context.SetFillColor(new float[] { red, green, blue, 1 });
+                    context.SetFillColor(new nfloat[] { red, green, blue, 1 });
                     context.FillPath();
                 }
                 else
                 {
                     context.Clip();
-                    float[] location = new float[] { 0f, 0.95f };
-                    float[] components = new float[] { red + 0.2f, green + 0.2f, blue + 0.2f, alpha, red, green, blue, 0.8f };
+                    nfloat[] location = new nfloat[] { 0f, 0.95f };
+                    nfloat[] components = new nfloat[] { red + 0.2f, green + 0.2f, blue + 0.2f, alpha, red, green, blue, 0.8f };
                     CGGradient gradients = new CGGradient(colorspace, components, location);
-                    context.DrawLinearGradient(gradients, PointF.Empty, endPoint, 0);
+                    context.DrawLinearGradient(gradients, CGPoint.Empty, endPoint, 0);
                 }
 
                 context.RestoreState();
@@ -299,7 +298,7 @@ namespace TokenField
                 // Draw a white background so we can use alpha to lighten the inner gradient
                 context.SaveState();
                 context.AddPath(innerPath);
-                context.SetFillColor(new float[] { 1f, 1f, 1f, 1f });
+                context.SetFillColor(new nfloat[] { 1f, 1f, 1f, 1f });
                 context.FillPath();
                 context.RestoreState();
 
@@ -310,25 +309,25 @@ namespace TokenField
 
 
 
-                float[] locations = new float[] { 0f, (drawHighlighted ? 0.9f : 0.6f) };
-                float[] highlightedComp = new float[] { red, green, blue, 0.7f, red, green, blue, 1f };
-                float[] nonHighlightedComp = new float[] { red, green, blue, 0.15f, red, green, blue, 0.3f };
+                nfloat[] locations = new nfloat[] { 0f, (drawHighlighted ? 0.9f : 0.6f) };
+                nfloat[] highlightedComp = new nfloat[] { red, green, blue, 0.7f, red, green, blue, 1f };
+                nfloat[] nonHighlightedComp = new nfloat[] { red, green, blue, 0.15f, red, green, blue, 0.3f };
 
                 CGGradient gradient = new CGGradient(colorspace, (drawHighlighted ? highlightedComp : nonHighlightedComp), locations);
-                context.DrawLinearGradient(gradient, Point.Empty, endPoint, 0);
+                context.DrawLinearGradient(gradient, CGPoint.Empty, endPoint, 0);
                 context.RestoreState();
 
-                float accessoryWidth = 0;
-                float ignore = 0;
+                nfloat accessoryWidth = 0;
+                nfloat ignore = 0;
 
                 if (_accessoryType == AccessoryType.DisclosureIndicator)
                 {
-                    PointF arrowPoint = new PointF(this.Bounds.Size.Width - (float)Math.Floor(hTextPadding / 2), (this.Bounds.Size.Height / 2) - 1);
+                    CGPoint arrowPoint = new CGPoint(this.Bounds.Size.Width - (nfloat)Math.Floor(hTextPadding / 2), (this.Bounds.Size.Height / 2) - 1);
                     CGPath disclosurePath = this.CreateDisclosureIndicatorPath(arrowPoint, _font.PointSize, kDisclosureThickness, out accessoryWidth);
-                    accessoryWidth += (float)Math.Floor(hTextPadding / 2);
+                    accessoryWidth += (nfloat)Math.Floor(hTextPadding / 2);
 
                     context.AddPath(disclosurePath);
-                    context.SetFillColor(new float[] { 1, 1, 1, 1 });
+                    context.SetFillColor(new nfloat[] { 1, 1, 1, 1 });
 
                     if (drawHighlighted)
                     {
@@ -337,7 +336,7 @@ namespace TokenField
                     else
                     {
                         context.SaveState();
-                        context.SetShadowWithColor(new SizeF(0, 1), 1, UIColor.White.ColorWithAlpha(0.6f).CGColor);
+                        context.SetShadow(new CGSize(0, 1), 1, UIColor.White.ColorWithAlpha(0.6f).CGColor);
                         context.FillPath();
                         context.RestoreState();
 
@@ -346,12 +345,12 @@ namespace TokenField
                         context.Clip();
 
                         CGGradient disclosureGradient = new CGGradient(colorspace, highlightedComp, null);
-                        context.DrawLinearGradient(disclosureGradient, PointF.Empty, endPoint, 0);
+                        context.DrawLinearGradient(disclosureGradient, CGPoint.Empty, endPoint, 0);
                         arrowPoint.Y += 0.5f;
                         CGPath innerShadowPath = this.CreateDisclosureIndicatorPath(arrowPoint, _font.PointSize, kDisclosureThickness, out ignore);
                         context.AddPath(innerShadowPath);
 
-                        context.SetStrokeColor(new float[] { 0f, 0f, 0f, 0.3f });
+                        context.SetStrokeColor(new nfloat[] { 0f, 0f, 0f, 0.3f });
                         context.StrokePath();
                         context.RestoreState();
                     }
@@ -359,12 +358,12 @@ namespace TokenField
 
                 NSString title = new NSString(this.Title);
 
-                SizeF titleSize = title.StringSize(this.Font, (_maxWidth - hTextPadding - accessoryWidth), kLineBreakMode);
-                float vPadding = (float)Math.Floor((this.Bounds.Size.Height - titleSize.Height) / 2f);
-                float titleWidth = (float)Math.Ceiling(this.Bounds.Size.Width - hTextPadding - accessoryWidth);
-                RectangleF textBounds = new RectangleF((float)Math.Floor(hTextPadding / 2), vPadding - 1, titleWidth, (float)Math.Floor(this.Bounds.Size.Height - (vPadding * 2)));
+                CGSize titleSize = title.StringSize(this.Font, (_maxWidth - hTextPadding - accessoryWidth), kLineBreakMode);
+                nfloat vPadding = (float)Math.Floor((this.Bounds.Size.Height - titleSize.Height) / 2f);
+                nfloat titleWidth = (float)Math.Ceiling(this.Bounds.Size.Width - hTextPadding - accessoryWidth);
+                CGRect textBounds = new CGRect((float)Math.Floor(hTextPadding / 2), vPadding - 1, titleWidth, (float)Math.Floor(this.Bounds.Size.Height - (vPadding * 2)));
 
-                context.SetFillColorWithColor((drawHighlighted ? this.HighlightedTextColor : this.TextColor).CGColor);
+                context.SetFillColor((drawHighlighted ? this.HighlightedTextColor : this.TextColor).CGColor);
 
                 title.DrawString(textBounds, this.Font, kLineBreakMode);
             });
@@ -378,55 +377,55 @@ namespace TokenField
 
         #region Protected Methods
 
-        protected virtual CGPath CreateTokenPath(SizeF size, bool innerPath) 
+        protected virtual CGPath CreateTokenPath(CGSize size, bool innerPath) 
         {
             return Wrap.Function("CreateTokenPath", delegate()
             {
                 CGPath path = new CGPath();
-                float arcValue = (size.Height / 2) - 1;
-                float radius = arcValue - (innerPath ? (1 / UIScreen.MainScreen.Scale) : 0);
-                path.AddArc(arcValue, arcValue, radius, (float)(Math.PI / 2f), (float)(Math.PI * 3 / 2f), false);
-                path.AddArc(size.Width - arcValue, arcValue, radius, (float)(Math.PI * 3 / 2), (float)(Math.PI / 2), false);
+                nfloat arcValue = (size.Height / 2) - 1;
+                nfloat radius = arcValue - (innerPath ? (1 / UIScreen.MainScreen.Scale) : 0);
+                path.AddArc(arcValue, arcValue, radius, (nfloat)(Math.PI / 2f), (float)(Math.PI * 3 / 2f), false);
+                path.AddArc(size.Width - arcValue, arcValue, radius, (nfloat)(Math.PI * 3 / 2), (nfloat)(Math.PI / 2), false);
                 path.CloseSubpath();
                 return path;
             });
         }
-        protected virtual CGPath CreateDisclosureIndicatorPath(PointF arrowPointFront, float height, float thickness, out float width)
+        protected virtual CGPath CreateDisclosureIndicatorPath(CGPoint arrowCGPointront, nfloat height, nfloat thickness, out nfloat width)
         {
-            float out_width = 0; // fix for method wrapping
+            nfloat out_width = 0; // fix for method wrapping
             CGPath result = Wrap.Function("CreateDisclosureIndicatorPath", delegate()
             {
                 thickness /= (float)Math.Cos(Math.PI / 4);
                 CGPath path = new CGPath(); //CGPathCreateMutable();
-                path.MoveToPoint(arrowPointFront.X, arrowPointFront.Y);
+                path.MoveToPoint(arrowCGPointront.X, arrowCGPointront.Y);
 
-                PointF bottomPointFront = new PointF(arrowPointFront.X - (float)(height / (2 * Math.Tan(Math.PI / 4))), arrowPointFront.Y - height / 2);
-                path.AddLineToPoint(bottomPointFront.X, bottomPointFront.Y);
+                CGPoint bottomCGPointront = new CGPoint(arrowCGPointront.X - (float)(height / (2 * Math.Tan(Math.PI / 4))), arrowCGPointront.Y - height / 2);
+                path.AddLineToPoint(bottomCGPointront.X, bottomCGPointront.Y);
 
 
-                PointF bottomPointBack = new PointF(bottomPointFront.X - thickness * (float)Math.Cos(Math.PI / 4), bottomPointFront.Y + thickness * (float)Math.Sin(Math.PI / 4));
+                CGPoint bottomPointBack = new CGPoint(bottomCGPointront.X - thickness * (float)Math.Cos(Math.PI / 4), bottomCGPointront.Y + thickness * (float)Math.Sin(Math.PI / 4));
                 path.AddLineToPoint(bottomPointBack.X, bottomPointBack.Y);
 
-                PointF arrowPointBack = new PointF(arrowPointFront.X - thickness / (float)Math.Cos(Math.PI / 4), arrowPointFront.Y);
+                CGPoint arrowPointBack = new CGPoint(arrowCGPointront.X - thickness / (float)Math.Cos(Math.PI / 4), arrowCGPointront.Y);
                 path.AddLineToPoint(arrowPointBack.X, arrowPointBack.Y);
 
-                PointF topPointFront = new PointF(bottomPointFront.X, arrowPointFront.Y + height / 2);
-                PointF topPointBack = new PointF(bottomPointBack.X, topPointFront.Y - thickness * (float)Math.Sin(Math.PI / 4));
+                CGPoint topCGPointront = new CGPoint(bottomCGPointront.X, arrowCGPointront.Y + height / 2);
+                CGPoint topPointBack = new CGPoint(bottomPointBack.X, topCGPointront.Y - thickness * (float)Math.Sin(Math.PI / 4));
 
                 path.AddLineToPoint(topPointBack.X, topPointBack.Y);
-                path.AddLineToPoint(topPointFront.X, topPointFront.Y);
-                path.AddLineToPoint(arrowPointFront.X, arrowPointFront.Y);
+                path.AddLineToPoint(topCGPointront.X, topCGPointront.Y);
+                path.AddLineToPoint(arrowCGPointront.X, arrowCGPointront.Y);
 
-                out_width = (arrowPointFront.X - topPointBack.X);
+                out_width = (arrowCGPointront.X - topPointBack.X);
                 return path;
             });
             width = out_width;
             return result;
         }
-        protected virtual bool GetTintColorRed(ref float red, ref float green, ref float blue, ref float alpha)
+        protected virtual bool GetTintColorRed(ref nfloat red, ref nfloat green, ref nfloat blue, ref nfloat alpha)
         {
             CGColorSpaceModel colorSpaceModel = this.TintColor.CGColor.ColorSpace.Model;
-            float[] components = this.TintColor.CGColor.Components;
+            nfloat[] components = this.TintColor.CGColor.Components;
 
             if ((colorSpaceModel == CGColorSpaceModel.Monochrome) || (colorSpaceModel == CGColorSpaceModel.RGB))
             {

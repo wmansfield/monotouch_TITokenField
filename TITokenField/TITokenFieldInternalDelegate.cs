@@ -25,7 +25,7 @@
 //  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 using System;
-using MonoTouch.UIKit;
+using UIKit;
 
 namespace TokenField
 {
@@ -100,7 +100,7 @@ namespace TokenField
             return true;
         }
 
-        public override bool ShouldChangeCharacters(UITextField textField, MonoTouch.Foundation.NSRange range, string replacementString)
+        public override bool ShouldChangeCharacters(UITextField textField, Foundation.NSRange range, string replacementString)
         {
             if (!string.IsNullOrEmpty(replacementString))
             {

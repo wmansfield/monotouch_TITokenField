@@ -26,11 +26,11 @@
 //
 
 using System;
-using MonoTouch.UIKit;
+using UIKit;
 using System.Collections.Generic;
-using System.Drawing;
-using MonoTouch.Foundation;
+using Foundation;
 using System.Collections;
+using CoreGraphics;
 
 namespace TokenField
 {
@@ -105,12 +105,12 @@ namespace TokenField
         protected TITokenFieldInternalDelegate _internalDelegate;
         protected UILabel _placeHolderLabel;
         protected string _placeHolderText;
-        protected PointF _tokenCaret;
+        protected CGPoint _tokenCaret;
         protected float _fontSize;
         protected int _maxTokenWidth;
         protected UIColor _tokenTintColor;
 
-        protected virtual float LeftViewWidth 
+        protected virtual nfloat LeftViewWidth 
         { 
             get
             {
@@ -124,7 +124,7 @@ namespace TokenField
                 return this.LeftView.Bounds.Size.Width;
             }
         }
-        protected virtual float RightViewWidth
+        protected virtual nfloat RightViewWidth
         { 
             get
             {
@@ -320,7 +320,7 @@ namespace TokenField
                         UILabel label = _placeHolderLabel;
                         if ((label == null) || !(label is UILabel))
                         {
-                            label = new UILabel(new RectangleF(_tokenCaret.X + 3, _tokenCaret.Y + 2, 0,0));
+                            label = new UILabel(new CGRect(_tokenCaret.X + 3, _tokenCaret.Y + 2, 0,0));
                             label.TextColor = UIColor.FromWhiteAlpha(0.75f, 1f);
                             _placeHolderLabel = label;
                             this.AddSubview(_placeHolderLabel);
@@ -346,7 +346,7 @@ namespace TokenField
         }
 
 
-        public override RectangleF Frame
+        public override CGRect Frame
         {
             get
             {
@@ -462,8 +462,8 @@ namespace TokenField
                         scrollView.ScrollsToTop = !enabled;
                         scrollView.ScrollEnabled = !enabled;
 
-                        float offset = ((this.NumberOfLines == 1 || !enabled) ? 0 : _tokenCaret.Y - (float)Math.Floor(this.Font.LineHeight * 4 / 7) + 1);
-                        scrollView.SetContentOffset(new PointF(0, this.Frame.Y + offset), animated);
+                        nfloat offset = ((this.NumberOfLines == 1 || !enabled) ? 0 : _tokenCaret.Y - (nfloat)Math.Floor(this.Font.LineHeight * 4 / 7) + 1);
+                        scrollView.SetContentOffset(new CGPoint(0, this.Frame.Y + offset), animated);
                     }
                 }
 
@@ -703,47 +703,47 @@ namespace TokenField
         }
 
 
-        public override RectangleF TextRect(RectangleF forBounds)
+        public override CGRect TextRect(CGRect forBounds)
         {
             return Wrap.Function("TextRect", delegate()
             {
                 if (this.Text == kTextHidden)
                 {
-                    return new RectangleF(0f, -40f, 0f, 0f);
+                    return new CGRect(0f, -40f, 0f, 0f);
                 }
 
-                RectangleF frame = forBounds;
+                CGRect frame = forBounds;
                 frame.Offset(_tokenCaret.X + 2f, _tokenCaret.Y + 3f);
                 frame.Width -= (_tokenCaret.X + this.RightViewWidth + 10);
                 return frame;
             });
         }
-        public override RectangleF EditingRect(RectangleF forBounds)
+        public override CGRect EditingRect(CGRect forBounds)
         {
             return Wrap.Function("EditingRect", delegate()
             {
                 return this.TextRect(forBounds);
             });
         }
-        public override RectangleF PlaceholderRect(RectangleF forBounds)
+        public override CGRect PlaceholderRect(CGRect forBounds)
         {
             return Wrap.Function("PlaceholderRect", delegate()
             {
                 return this.TextRect(forBounds);
             });
         }
-        public override RectangleF LeftViewRect(RectangleF forBounds)
+        public override CGRect LeftViewRect(CGRect forBounds)
         {
             return Wrap.Function("LeftViewRect", delegate()
             {
-                return new RectangleF(new PointF(8, (float)Math.Ceiling(this.Font.LineHeight * 4 / 7)), this.LeftView.Bounds.Size);
+                return new CGRect(new CGPoint(8, (float)Math.Ceiling(this.Font.LineHeight * 4 / 7)), this.LeftView.Bounds.Size);
             });
         }
-        public override RectangleF RightViewRect(RectangleF forBounds)
+        public override CGRect RightViewRect(CGRect forBounds)
         {
             return Wrap.Function("RightViewRect", delegate()
             {
-                return new RectangleF(new PointF(Bounds.Size.Width - this.RightView.Bounds.Size.Width - 6, Bounds.Size.Height - this.RightView.Bounds.Size.Height - 6), this.RightView.Bounds.Size);
+                return new CGRect(new CGPoint(Bounds.Size.Width - this.RightView.Bounds.Size.Width - 6, Bounds.Size.Height - this.RightView.Bounds.Size.Height - 6), this.RightView.Bounds.Size);
             });
         }
 
@@ -756,7 +756,7 @@ namespace TokenField
         {
             Wrap.Method("LayoutTokensAnimated", delegate()
             {
-                float newHeight = this.LayoutTokensInternal();
+                nfloat newHeight = this.LayoutTokensInternal();
                 if (this.Bounds.Size.Height != newHeight)
                 {
                     // Animating this seems to invoke the triple-tap-delete-key-loop-problem-thing™
@@ -766,7 +766,7 @@ namespace TokenField
                         {
                             Wrap.Method("LayoutTokensAnimated.Animate",delegate()
                             {
-                                this.Frame = new RectangleF(this.Frame.X, this.Frame.Y, this.Bounds.Size.Width, newHeight);
+                                this.Frame = new CGRect(this.Frame.X, this.Frame.Y, this.Bounds.Size.Width, newHeight);
                                 this.SendActionForControlEvents((UIControlEvent)ControlEvents.FrameWillChange);
                             });
                         },
@@ -805,18 +805,18 @@ namespace TokenField
             base.Dispose(disposing);
         }
 
-        protected virtual float LayoutTokensInternal()
+        protected virtual nfloat LayoutTokensInternal()
         {
             return Wrap.Function("LayoutTokensInternal", delegate()
             {
-                float topMargin = (float)Math.Floor(this.Font.LineHeight * 4 / 7);
-                float leftMargin = this.LeftViewWidth + 12f;
-                float hPadding = 8f;
-                float rightMargin = this.RightViewWidth + hPadding;
-                float lineHeight = this.Font.LineHeight + topMargin + 5f;
+                nfloat topMargin = (nfloat)Math.Floor(this.Font.LineHeight * 4 / 7);
+                nfloat leftMargin = this.LeftViewWidth + 12f;
+                nfloat hPadding = 8f;
+                nfloat rightMargin = this.RightViewWidth + hPadding;
+                nfloat lineHeight = this.Font.LineHeight + topMargin + 5f;
 
                 this.NumberOfLines = 1;
-                _tokenCaret = new PointF(leftMargin, (topMargin - 1));
+                _tokenCaret = new CGPoint(leftMargin, (topMargin - 1));
 
                 TIToken[] tokens = this.Tokens.ToArray();
                 foreach (TIToken token in tokens)
@@ -840,7 +840,7 @@ namespace TokenField
                             _tokenCaret.Y += lineHeight;
                         }
 
-                        token.Frame = new RectangleF(_tokenCaret, token.Bounds.Size);
+                        token.Frame = new CGRect(_tokenCaret, token.Bounds.Size);
                         _tokenCaret.X += token.Bounds.Size.Width + 4;
 
                         if (this.Bounds.Size.Width - _tokenCaret.X - rightMargin < 50)
@@ -944,9 +944,9 @@ namespace TokenField
                         untokenized = string.Join(", ", titles);
                         NSString nsString = new NSString(untokenized);
 
-                        SizeF untokSize = nsString.StringSize(UIFont.SystemFontOfSize(this.FontSize));
+                        CGSize untokSize = nsString.StringSize(UIFont.SystemFontOfSize(this.FontSize));
 
-                        float availableWidth = this.Bounds.Size.Width - this.LeftViewWidth - this.RightViewWidth;
+                        nfloat availableWidth = this.Bounds.Size.Width - this.LeftViewWidth - this.RightViewWidth;
 
                         if (this.Tokens.Count > 1 && untokSize.Width > availableWidth)
                         {
