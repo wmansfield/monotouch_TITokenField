@@ -63,6 +63,7 @@ namespace TokenField
             this.Editable = true;
             _maxTokenWidth = 200;
             _tokenTintColor = TIToken.BlueTintColor;
+            _tokenRadius = 10;
             this.RemovesTokensOnEndEditing = true;
             this.TokenizingCharacters = new char[]{','};
 
@@ -109,6 +110,7 @@ namespace TokenField
         protected float _fontSize;
         protected int _maxTokenWidth;
         protected UIColor _tokenTintColor;
+        protected float _tokenRadius;
 
         protected virtual float LeftViewWidth 
         { 
@@ -212,6 +214,24 @@ namespace TokenField
             }
         }
 
+        public virtual float TokenRadius
+        {
+            get
+            {
+                return _tokenRadius;
+            }
+            set
+            {
+                Wrap.Method("TokenField.TokenRadius", delegate()
+                {
+                    if (_tokenRadius != value)
+                    {
+                        _tokenRadius = value;
+                        LayoutTokensInternal();
+                    }
+                });
+            }
+        }
         public UIColor TokenTintColor
         {
             get
@@ -534,6 +554,7 @@ namespace TokenField
                     {
                         token.TintColor = this.TokenTintColor;
                         token.MaxWidth = this.MaxTokenWidth;
+                        token.TokenRadius = this.TokenRadius;
                         //this.BecomeFirstResponder();
 
                         token.TouchDown -= Token_TouchDown; //safety
@@ -823,6 +844,7 @@ namespace TokenField
                 {
                     token.TintColor = this.TokenTintColor;
                     token.Font = this.Font;
+                    token.TokenRadius = this.TokenRadius;
                     int maxWidth = (int)(this.Bounds.Size.Width - rightMargin - (this.NumberOfLines > 1 ? hPadding : leftMargin));
 
                     if(maxWidth > this.MaxTokenWidth)

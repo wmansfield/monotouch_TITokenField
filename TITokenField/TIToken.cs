@@ -92,6 +92,7 @@ namespace TokenField
 
         protected virtual void Setup()
         {
+            this.TokenRadius = 10;
             this.TintColor = TIToken.BlueTintColor;
             this.TextColor = UIColor.Black;
             this.HighlightedTextColor = UIColor.White;
@@ -114,6 +115,7 @@ namespace TokenField
 
         // New Props
 
+        public virtual float TokenRadius { get; set; }
         public virtual object RepresentedObject { get; set; }
         public virtual UIColor HighlightedTextColor { get; set; }
         public virtual UIColor TextColor { get; set; }
@@ -382,13 +384,7 @@ namespace TokenField
         {
             return Wrap.Function("CreateTokenPath", delegate()
             {
-                CGPath path = new CGPath();
-                float arcValue = (size.Height / 2) - 1;
-                float radius = arcValue - (innerPath ? (1 / UIScreen.MainScreen.Scale) : 0);
-                path.AddArc(arcValue, arcValue, radius, (float)(Math.PI / 2f), (float)(Math.PI * 3 / 2f), false);
-                path.AddArc(size.Width - arcValue, arcValue, radius, (float)(Math.PI * 3 / 2), (float)(Math.PI / 2), false);
-                path.CloseSubpath();
-                return path;
+                return UIBezierPath.FromRoundedRect(new RectangleF(0,0,size.Width, size.Height), this.TokenRadius).CGPath;
             });
         }
         protected virtual CGPath CreateDisclosureIndicatorPath(PointF arrowPointFront, float height, float thickness, out float width)
